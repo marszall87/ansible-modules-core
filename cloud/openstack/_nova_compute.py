@@ -175,6 +175,11 @@ options:
      required: false
      default: None
      version_added: "1.9"
+   block_device:
+     description:
+        - A list of block devices that should be attached
+     required: false
+     default: None
 requirements: ["novaclient"]
 '''
 
@@ -271,6 +276,28 @@ EXAMPLES = '''
       image_name: Ubuntu 14.04 LTS (Trusty Tahr) (PVHVM)
       flavor_ram: 4096
       flavor_include: Performance
+
+# Creates a new VM and attaches a new block device on Cinder volume
+- nova_compute:
+       state: present
+       login_username: admin
+       login_password: admin
+       login_tenant_name: admin
+       name: vm1
+       image_id: 4f905f38-e52a-43d2-b6ec-754a13ffb529
+       key_name: ansible_key
+       wait_for: 200
+       flavor_id: 4
+       nics:
+         - net-id: 34605f38-e52a-25d2-b6ec-754a13ffb723
+       block_device:
+         - device_name: vda
+           boot_index: 0
+           uuid: 4f905f38-e52a-43d2-b6ec-754a13ffb529
+           volume_size: 40
+           source_type: image
+           destination_type: volume
+           delete_on_termination: true
 '''
 
 
@@ -427,6 +454,7 @@ def _create_server(module, nova):
                 #userdata is unhyphenated in novaclient, but hyphenated here for consistency with the ec2 module:
                 'userdata': module.params['user_data'],
                 'config_drive': module.params['config_drive'],
+                'block_device_mapping_v2': module.params['block_device']
     }
 
     for optional_param in ('region_name', 'key_name', 'availability_zone', 'scheduler_hints'):
@@ -551,6 +579,7 @@ def main():
         floating_ips                    = dict(default=None),
         floating_ip_pools               = dict(default=None),
         scheduler_hints                 = dict(default=None),
+        block_device                    = dict(default=None),
     ))
     module = AnsibleModule(
         argument_spec=argument_spec,
